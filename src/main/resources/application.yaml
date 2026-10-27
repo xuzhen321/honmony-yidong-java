@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: demo
+
+  # MySQL 连接：默认 localhost:3306/harmony_test，账号 root
+  # 密码不写进仓库，启动时用环境变量传入：DB_PASSWORD=你的密码
+  # 数据库和表需要先执行 db/init.sql 手动创建，应用启动时不会改数据库
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: "${DB_URL:jdbc:mysql://localhost:3306/harmony_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}"
+    username: root
+    password: 66163905aa
+
+mybatis-plus:
+  configuration:
+    # 数据库下划线字段 -> Java 驼峰属性，例如 user_name -> userName
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+# 自定义配置：Token 有效期（分钟），在 TokenStore 里用 @Value 读取
+# 注意这里必须是纯数字，写成 60*24 会被当成字符串，启动时转 long 直接报错
+app:
+  auth:
+    token-expire-minutes: 1440
+
+# 自动接口文档：Swagger UI 地址 http://localhost:8080/swagger-ui.html
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+logging:
+  level:
+    com.example.demo: debug
+    # MyBatis-Plus 在 debug 级别会打印实际执行的 SQL，方便联调
+    com.example.demo.mapper: debug

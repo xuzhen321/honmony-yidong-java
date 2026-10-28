@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -143,7 +146,28 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
         log.warn("Content-Type 不支持: {}", e.getContentType());
         return this.fail(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                "不支持 " + e.getContentType() + "，请使用 application/json");
+                "不支持 " + e.getContentType() + "，请使用接口要求的 Content-Type");
+    }
+
+    /** 上传文件超过 spring.servlet.multipart.max-file-size。 */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Result<Void>> handleMaxUploadSize(MaxUploadSizeExceededException e) {
+        log.warn("上传文件过大: {}", e.getMessage());
+        return this.fail(HttpStatus.PAYLOAD_TOO_LARGE, "上传文件超过 1MB");
+    }
+
+    /** multipart 请求解析失败，例如 boundary 缺失、Content-Type 不是 multipart。 */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<Result<Void>> handleMultipart(MultipartException e) {
+        log.warn("multipart 请求解析失败: {}", e.getMessage());
+        return this.fail(HttpStatus.BAD_REQUEST, "上传请求解析失败，请使用 multipart/form-data");
+    }
+
+    /** 缺少 multipart 的 part，例如没有传 audio。 */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Result<Void>> handleMissingPart(MissingServletRequestPartException e) {
+        log.warn("缺少 multipart 字段: {}", e.getRequestPartName());
+        return this.fail(HttpStatus.BAD_REQUEST, "缺少上传字段: " + e.getRequestPartName());
     }
 
     /** 8. 接口地址写错了：Spring 6.1+ 访问不存在的资源/接口时抛 NoResourceFoundException。 */
@@ -170,7 +194,7 @@ public class GlobalExceptionHandler {
         return this.fail(HttpStatus.INTERNAL_SERVER_ERROR, SYSTEM_ERROR_MSG);
     }
 
-    /** 统一构造失败响应：HTTP 状态码由 HttpStatus 决定，body 的 code 固定为 0 */
+    /** 统一构造失败响应：HTTP 状态码由 HttpStatus 决定，body 的 code 固定为 0，data 为 null */
     private ResponseEntity<Result<Void>> fail(HttpStatus status, String msg) {
         return ResponseEntity.status(status).body(Result.fail(msg));
     }

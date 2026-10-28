@@ -47,6 +47,18 @@ public interface UserMapper extends BaseMapper<User> {
     User selectByIdIgnoreLogicDelete(@Param("id") Long id);
 
     /**
+     * 忽略逻辑删除按用户名查询，用于创建账号时的重名校验。
+     * 已冻结的账号也占用 user_name 唯一键，必须能查出来。
+     */
+    @Select("""
+            SELECT id, user_name, nick_name, role, deleted
+            FROM `user`
+            WHERE user_name = #{userName}
+            LIMIT 1
+            """)
+    User selectByUserNameIgnoreLogicDelete(@Param("userName") String userName);
+
+    /**
      * 恢复账号：把 deleted 从 1 改回 0。
      * 这是自定义 SQL，不会触发 @TableLogic 自动追加的 deleted = 0 条件。
      */

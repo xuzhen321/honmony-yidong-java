@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.common.Result;
 import com.example.demo.config.OpenApiConfig;
+import com.example.demo.pojo.dto.CreateUserRequest;
 import com.example.demo.pojo.vo.PageResult;
 import com.example.demo.pojo.vo.UserListItemVO;
 import com.example.demo.security.AuthInterceptor;
@@ -10,12 +11,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,6 +34,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserAdminController {
 
     private final UserAdminService userAdminService;
+
+    @Operation(summary = "创建账号",
+            description = "仅管理员；用户名唯一，role 不传默认 USER；创建后用户首次登录需要先完成声纹注册")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_SCHEME)
+    @PostMapping
+    public Result<Void> create(
+            @Parameter(hidden = true) @RequestAttribute(AuthInterceptor.ATTR_USER_ID) Long operatorId,
+            @Valid @RequestBody CreateUserRequest request) {
+        userAdminService.createUser(operatorId, request);
+        return Result.success();
+    }
 
     @Operation(summary = "分页查询用户",
             description = "仅管理员；userName 模糊匹配，deleted=0 正常 / 1 已冻结，不传返回全部")

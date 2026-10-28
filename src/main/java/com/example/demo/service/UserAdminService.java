@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.common.BusinessException;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.dto.CreateUserRequest;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.pojo.vo.PageResult;
 import com.example.demo.pojo.vo.UserListItemVO;
@@ -11,8 +12,12 @@ import com.example.demo.security.TokenStore;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
 
 /**
  * 管理员用户管理：分页查询、冻结、恢复。
@@ -28,6 +33,53 @@ public class UserAdminService {
 
     private final UserMapper userMapper;
     private final TokenStore tokenStore;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    /**
+     * 管理员创建账号。只有 ADMIN 可以调用。
+     *
+     * <p>用户名唯一：已冻结账号也占用 user_name 唯一键，所以重名时提示管理员先恢复或换名。
+     * 创建后不自动登录，也不在这里创建声纹档案；用户首次登录看到
+     * {@code LoginResult.needVoiceprintEnroll=true} 后去录声纹。</p>
+     */
+    public void createUser(Long operatorId, CreateUserRequest request) {
+        this.requireAdmin(operatorId);
+
+        String userName = request.getUserName().trim();
+        User existing = userMapper.selectByUserNameIgnoreLogicDelete(userName);
+        if (existing != null) {
+            if (Integer.valueOf(1).equals(existing.getDeleted())) {
+                throw new BusinessException(HttpStatus.CONFLICT,
+                        "用户名已存在且已被冻结，请先恢复账号或换一个用户名");
+            }
+            throw new BusinessException(HttpStatus.CONFLICT, "用户名已存在");
+        }
+
+        String role = request.getRole() == null || request.getRole().isBlank()
+                ? "USER" : request.getRole().trim().toUpperCase();
+        if (!"USER".equals(role) && !"ADMIN".equals(role)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "role 只能是 USER 或 ADMIN");
+        }
+        String nickName = request.getNickName() == null || request.getNickName().isBlank()
+                ? "新用户" : request.getNickName().trim();
+
+        User user = new User();
+        user.setUserName(userName);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setNickName(nickName);
+        user.setRole(role);
+        user.setDeleted(0);
+
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException e) {
+            // 并发创建同名账号时由 uk_user_user_name 兜底
+            throw new BusinessException(HttpStatus.CONFLICT, "用户名已存在");
+        }
+
+        log.info("管理员 {} 创建账号 {}（{}，角色 {}）",
+                operatorId, user.getId(), userName, role);
+    }
 
     /**
      * 分页条件查询。

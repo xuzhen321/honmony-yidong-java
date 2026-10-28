@@ -1,11 +1,16 @@
 # 移动应用开发 · 后端 demo
 
 Spring Boot 4.1.2 + Java 17 + Lombok + MyBatis-Plus 3.5.18 + MySQL 8。
-已实现 **登录、退出登录、修改密码、修改昵称、用户管理、Token 鉴权、统一响应、全局异常处理**。
+已实现 **登录、退出登录、修改密码、修改昵称、用户管理（含管理员创建账号）、考勤任务（管理员发起）、Token 鉴权、统一响应、全局异常处理**。
 
 完整的接口说明见：[`docs/用户登录接口文档.md`](docs/用户登录接口文档.md)
 
-前端联调请看：[`docs/前后端联调文档-登录模块.md`](docs/前后端联调文档-登录模块.md)
+前端联调请看：
+
+- 登录模块：[`docs/前后端联调文档-登录模块.md`](docs/前后端联调文档-登录模块.md)
+- 考勤任务模块：[`docs/前后端联调文档-考勤任务模块.md`](docs/前后端联调文档-考勤任务模块.md)
+
+声纹认证（M1 基础设施 + M4 考勤任务 + 管理员创建账号已完成；声纹注册/打卡尚未实现）请看：[`docs/声纹认证-后端设计文档.md`](docs/声纹认证-后端设计文档.md)
 
 ---
 
@@ -57,6 +62,12 @@ mysql -uroot -p < src/main/resources/db/init.sql
 mysql -uroot -p harmony_test < src/main/resources/db/migration_user_add_role_deleted.sql
 ```
 
+声纹认证和考勤任务使用 8 张新表，需要手动执行：
+
+```bash
+mysql -uroot -p harmony_test < src/main/resources/db/voiceprint.sql
+```
+
 测试账号完全由 `init.sql` 负责，应用启动时不会自动插入数据。
 
 ### 1.3 启动
@@ -97,24 +108,31 @@ com.example.demo
 │   └── MybatisPlusConfig.java        分页插件 PaginationInnerInterceptor
 ├── controller/
 │   ├── UserController.java           /user/login、/user/info、/user/logout、/user/password、/user/nickname
-│   └── UserAdminController.java      /user/page、冻结、恢复
+│   ├── UserAdminController.java      /user/page、冻结、恢复
+│   └── AttendanceTaskController.java /attendance/task 创建、分页、详情、我的任务
 ├── service/
 │   ├── AuthService.java              登录校验、发 token、修改密码
-│   └── UserAdminService.java         管理员分页、冻结、恢复
+│   ├── UserAdminService.java         管理员分页、冻结、恢复
+│   └── AttendanceTaskService.java    考勤任务创建、查询
 ├── mapper/
-│   └── UserMapper.java               MyBatis-Plus Mapper，含管理端分页/恢复 SQL
+│   ├── UserMapper.java               MyBatis-Plus Mapper，含管理端分页/恢复 SQL
+│   └── ...                           8 个声纹/考勤 Mapper（M1）
 ├── pojo/
 │   ├── dto/
 │   │   ├── LoginRequest.java         登录入参
 │   │   ├── ChangePasswordRequest.java 修改自己的密码入参
 │   │   ├── AdminResetPasswordRequest.java 管理员重置用户密码入参
-│   │   └── UpdateNicknameRequest.java 修改自己的昵称入参
+│   │   ├── UpdateNicknameRequest.java 修改自己的昵称入参
+│   │   ├── CreateAttendanceTaskRequest.java 创建考勤任务入参
+│   │   └── CreateUserRequest.java    管理员创建账号入参
 │   ├── vo/
 │   │   ├── LoginResult.java          登录/当前用户返回
 │   │   ├── PageResult.java           通用分页结果
-│   │   └── UserListItemVO.java       用户列表项（不含密码）
+│   │   ├── UserListItemVO.java       用户列表项（不含密码）
+│   │   └── ...                       考勤任务相关 VO（M4）
 │   └── entity/
-│       └── User.java                 用户实体，@TableName("user")
+│       ├── User.java                 用户实体，@TableName("user")
+│       └── ...                       8 个声纹/考勤实体（M1）
 ├── security/
 │   ├── TokenStore.java               token 的发放 / 校验 / 销毁
 │   └── AuthInterceptor.java          登录拦截器
@@ -126,10 +144,11 @@ com.example.demo
 
 ```
 src/main/resources
-├── application.yaml                  数据源、MyBatis-Plus、token 有效期
+├── application.yaml                  数据源、MyBatis-Plus、token 有效期、声纹配置
 └── db/
     ├── init.sql                      初始化脚本：建库、建表、插入测试账号
-    └── migration_user_add_role_deleted.sql  已有库补 role / deleted 字段
+    ├── migration_user_add_role_deleted.sql  已有库补 role / deleted 字段
+    └── voiceprint.sql                声纹 + 考勤任务 8 张表（M1）
 ```
 
 POJO 使用 Lombok 生成 getter/setter/构造方法：
@@ -217,7 +236,8 @@ HTTP 状态码遵循标准语义：
 
 | 方法 | 路径 | 是否登录 | 说明 |
 | --- | --- | --- | --- |
-| POST | `/user/login` | 否 | 登录，返回 token |
+| POST | `/user/login` | 否 | 登录，返回 token 和 `needVoiceprintEnroll` |
+| POST | `/user` | 是（仅管理员） | 创建账号 |
 | GET | `/user/info` | 是 | 获取当前登录用户 |
 | POST | `/user/logout` | 是 | 退出登录，使 token 立即失效 |
 | PUT | `/user/password` | 是 | 修改自己的密码，需要原密码 |
@@ -226,6 +246,10 @@ HTTP 状态码遵循标准语义：
 | GET | `/user/page` | 是（仅管理员） | 分页查询用户，条件 `userName`、`deleted` |
 | DELETE | `/user/{userId}` | 是（仅管理员） | 冻结用户（逻辑删除），`data=null` |
 | PUT | `/user/{userId}/restore` | 是（仅管理员） | 恢复用户，`data=null` |
+| POST | `/attendance/task` | 是（仅管理员） | 创建考勤任务，指定人员与 `IN/OUT` |
+| GET | `/attendance/task/page` | 是（仅管理员） | 分页查看考勤任务 |
+| GET | `/attendance/task/{taskId}` | 是（仅管理员） | 查看任务详情和名单完成情况 |
+| GET | `/attendance/task/mine` | 是 | 查看自己的考勤任务 |
 
 请求示例：
 
@@ -234,6 +258,12 @@ HTTP 状态码遵循标准语义：
 curl -X POST http://localhost:8080/user/login \
   -H "Content-Type: application/json" \
   -d '{"userName":"admin","password":"123456"}'
+
+# 管理员创建账号（role 不传默认 USER）
+curl -X POST http://localhost:8080/user \
+  -H "Authorization: Bearer {adminToken}" \
+  -H "Content-Type: application/json" \
+  -d '{"userName":"zhangsan","password":"123456","nickName":"张三","role":"USER"}'
 
 # 带 token 访问
 curl http://localhost:8080/user/info \
@@ -272,11 +302,29 @@ curl -X DELETE http://localhost:8080/user/2 \
 # 恢复用户
 curl -X PUT http://localhost:8080/user/2/restore \
   -H "Authorization: Bearer {adminToken}"
+
+# 管理员创建考勤任务（指定用户 2、3 打上班卡）
+curl -X POST http://localhost:8080/attendance/task \
+  -H "Authorization: Bearer {adminToken}" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "title": "2026-10-28 上班打卡",
+        "checkType": "IN",
+        "startAt": "2026-10-28T08:00:00+08:00",
+        "endAt": "2026-10-28T09:30:00+08:00",
+        "userIds": [2, 3]
+      }'
+
+# 查看自己的考勤任务（拿到 state=OPEN、done=false 的 taskId）
+curl "http://localhost:8080/attendance/task/mine?pageNum=1&pageSize=10" \
+  -H "Authorization: Bearer {token}"
 ```
 
 > 修改密码成功后，目标用户的所有已登录 token 会立即失效，需要重新登录。
 > 修改昵称不会使 token 失效，修改后不需要重新登录。
 > 冻结是逻辑删除（`deleted=1`），不会物理删除；冻结/恢复后目标用户的所有 token 也会失效。
+> 登录和 `GET /user/info` 会返回 `needVoiceprintEnroll`；为 `true` 时客户端应强制进入声纹注册页。
+> 未录满 10 个数字前访问 `/attendance/task/mine` 返回 403，`data=null`，原因看 `msg`（请先完成声纹注册）。
 
 详细的字段说明、成功/失败响应示例、状态码对照见
 [`docs/用户登录接口文档.md`](docs/用户登录接口文档.md)。

@@ -69,7 +69,7 @@ public class Result<T> {
         return new Result<>(CODE_SUCCESS, SUCCESS_MSG, null);
     }
 
-    /** 失败：code 固定为 0，具体原因放在 msg 里 */
+    /** 失败：code 固定为 0，具体原因放在 msg 里，data 为 null */
     public static <T> Result<T> fail(String msg) {
         return new Result<>(CODE_FAIL, msg, null);
     }

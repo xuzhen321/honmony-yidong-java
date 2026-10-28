@@ -28,4 +28,7 @@ public class LoginResult {
 
     @Schema(description = "角色：ADMIN 管理员 / USER 普通用户", example = "ADMIN")
     private String role;
+
+    @Schema(description = "是否需要先完成声纹注册：10 个数字未录齐时为 true", example = "false")
+    private Boolean needVoiceprintEnroll;
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.demo.common.BusinessException;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.mapper.VoiceprintProfileMapper;
 import com.example.demo.pojo.dto.AdminResetPasswordRequest;
 import com.example.demo.pojo.dto.ChangePasswordRequest;
 import com.example.demo.pojo.dto.LoginRequest;
@@ -30,8 +31,10 @@ public class AuthService {
 
     /** 管理员角色值，和 user.role 字段保持一致 */
     private static final String ROLE_ADMIN = "ADMIN";
+    private static final int REQUIRED_DIGIT_COUNT = 10;
 
     private final UserMapper userMapper;
+    private final VoiceprintProfileMapper voiceprintProfileMapper;
     private final TokenStore tokenStore;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -52,7 +55,8 @@ public class AuthService {
         }
 
         String token = tokenStore.createSession(user);
-        return new LoginResult(token, user.getId(), user.getUserName(), user.getNickName(), user.getRole());
+        return new LoginResult(token, user.getId(), user.getUserName(), user.getNickName(),
+                user.getRole(), this.needVoiceprintEnroll(user.getId()));
     }
 
     /** 根据拦截器放进 request 的 userId 查用户信息；token 由 Controller 从当前请求里补上 */
@@ -61,7 +65,8 @@ public class AuthService {
         if (user == null) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "用户不存在，请重新登录");
         }
-        return new LoginResult(null, user.getId(), user.getUserName(), user.getNickName(), user.getRole());
+        return new LoginResult(null, user.getId(), user.getUserName(), user.getNickName(),
+                user.getRole(), this.needVoiceprintEnroll(user.getId()));
     }
 
     /**
@@ -130,6 +135,11 @@ public class AuthService {
         updatePassword(targetUserId, request.getNewPassword());
         tokenStore.removeByUserId(targetUserId);
         log.info("管理员 {} 重置了用户 {} 的密码", operatorId, targetUserId);
+    }
+
+    /** 10 个数字模板齐全才算完成声纹注册；没有档案或没录齐都为 true */
+    private boolean needVoiceprintEnroll(Long userId) {
+        return voiceprintProfileMapper.countDistinctDigitTags(userId) < REQUIRED_DIGIT_COUNT;
     }
 
     /** 只更新 password 列，避免把整行其它字段一起覆盖 */

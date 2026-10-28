@@ -10,9 +10,15 @@ spring:
   # 数据库和表需要先执行 db/init.sql 手动创建，应用启动时不会改数据库
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: "${DB_URL:jdbc:mysql://localhost:3306/harmony_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}"
+    url: jdbc:mysql://localhost:3306/harmony_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 66163905aa
+
+  # 声纹注册/打卡都是 multipart/form-data
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 2MB
 
 mybatis-plus:
   configuration:
@@ -32,6 +38,21 @@ mybatis-plus:
 app:
   auth:
     token-expire-minutes: 1440
+
+  voiceprint:
+    # 音频根目录；换机器时不用改代码，设置 VOICEPRINT_AUDIO_ROOT 即可
+    audio-root: D:/a2026-10/attendance-voice
+    # Base64 编码的 32 字节 AES 密钥；生成：openssl rand -base64 32
+    # 不配置时 M1/M2 仍可启动，真正使用加密时（M3）会校验
+    aes-key: q8Zr2pLx9vN4mK7wT1yB6cD3fH5jA0sE8gU2iO4kQ1o=
+    challenge-ttl-seconds: 60
+    challenge-max-attempts: 3
+    challenge-rate-limit-per-minute: 5
+    duplicate-threshold: 0.70
+    thresholds:
+      avg: 0.78
+      min: 0.65
+      margin: 0.05
 
 # 自动接口文档：Swagger UI 地址 http://localhost:8080/swagger-ui.html
 springdoc:

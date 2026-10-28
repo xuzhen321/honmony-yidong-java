@@ -20,6 +20,12 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   global-config:
     banner: false
+    db-config:
+      # 逻辑删除：实体里叫 deleted 的字段自动生效
+      # 查询会自动追加 deleted = 0；deleteById 会变成 UPDATE deleted = 1
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
 # 自定义配置：Token 有效期（分钟），在 TokenStore 里用 @Value 读取
 # 注意这里必须是纯数字，写成 60*24 会被当成字符串，启动时转 long 直接报错

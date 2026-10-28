@@ -39,6 +39,7 @@ public class TokenStore {
 
         private final Long userId;
         private final String userName;
+        private final String role;
         private final Instant expireAt;
     }
 
@@ -55,7 +56,7 @@ public class TokenStore {
     public String createSession(User user) {
         String token = UUID.randomUUID().toString().replace("-", "");
         Instant expireAt = Instant.now().plus(Duration.ofMinutes(expireMinutes));
-        sessions.put(token, new Session(user.getId(), user.getUserName(), expireAt));
+        sessions.put(token, new Session(user.getId(), user.getUserName(), user.getRole(), expireAt));
         return token;
     }
 
@@ -85,6 +86,14 @@ public class TokenStore {
         if (token != null) {
             sessions.remove(token);
         }
+    }
+
+    /** 修改/重置密码后调用：把该用户所有已登录会话都踢掉，强制重新登录 */
+    public void removeByUserId(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        sessions.entrySet().removeIf(entry -> userId.equals(entry.getValue().getUserId()));
     }
 
     /**

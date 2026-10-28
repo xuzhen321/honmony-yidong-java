@@ -25,4 +25,7 @@ public class LoginResult {
 
     @Schema(description = "昵称", example = "管理员")
     private String nickName;
+
+    @Schema(description = "角色：ADMIN 管理员 / USER 普通用户", example = "ADMIN")
+    private String role;
 }

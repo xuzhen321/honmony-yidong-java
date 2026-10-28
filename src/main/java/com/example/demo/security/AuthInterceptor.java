@@ -19,6 +19,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     /** 校验通过后，把当前用户信息塞进 request，Controller 用 @RequestAttribute 取 */
     public static final String ATTR_USER_ID = "currentUserId";
     public static final String ATTR_USER_NAME = "currentUserName";
+    public static final String ATTR_USER_ROLE = "currentUserRole";
 
     private final TokenStore tokenStore;
 
@@ -34,6 +35,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         request.setAttribute(ATTR_USER_ID, session.getUserId());
         request.setAttribute(ATTR_USER_NAME, session.getUserName());
+        request.setAttribute(ATTR_USER_ROLE, session.getRole());
         return true;
     }
 }

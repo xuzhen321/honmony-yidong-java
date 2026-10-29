@@ -88,6 +88,13 @@
             <version>3.2.0</version>
         </dependency>
 
+        <!-- 声纹 MFCC 计算用的 FFT；VAD / MFCC / DTW 由我们自己实现 -->
+        <dependency>
+            <groupId>com.github.wendykierp</groupId>
+            <artifactId>JTransforms</artifactId>
+            <version>3.1</version>
+        </dependency>
+
         <!-- 测试：Spring Boot 4 把 Web MVC 测试（MockMvc）从 starter-test 里拆成了独立模块 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -50,6 +50,9 @@ public class AttendanceTaskService {
     private static final String CHECK_OUT = "OUT";
     private static final Set<String> TASK_STATES = Set.of("UPCOMING", "OPEN", "CLOSED");
     private static final int REQUIRED_DIGIT_COUNT = 10;
+    private static final int DEFAULT_RADIUS_M = 200;
+    private static final int MIN_RADIUS_M = 50;
+    private static final int MAX_RADIUS_M = 1000;
 
     private final UserMapper userMapper;
     private final VoiceprintProfileMapper voiceprintProfileMapper;
@@ -76,6 +79,33 @@ public class AttendanceTaskService {
         LocalDateTime endAt = this.toLocal(request.getEndAt());
         if (!startAt.isBefore(endAt)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "endAt 必须晚于 startAt");
+        }
+
+        // 打卡点可选：不填就是“不限位置”，老任务和室内任务不受影响
+        Double latitude = request.getLatitude();
+        Double longitude = request.getLongitude();
+        Integer radiusM = request.getRadiusM();
+        String address = request.getAddress();
+        if ((latitude == null) != (longitude == null)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "打卡点坐标不完整");
+        }
+        if (latitude == null) {
+            if (radiusM != null || (address != null && !address.isBlank())) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "打卡点坐标不完整");
+            }
+            address = null;
+        } else {
+            if (!Double.isFinite(latitude) || latitude < -90 || latitude > 90
+                    || !Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "打卡点坐标不合法");
+            }
+            if (radiusM == null) {
+                radiusM = DEFAULT_RADIUS_M;
+            } else if (radiusM < MIN_RADIUS_M || radiusM > MAX_RADIUS_M) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST,
+                        "打卡半径必须在 " + MIN_RADIUS_M + " ~ " + MAX_RADIUS_M + " 米之间");
+            }
+            address = (address == null || address.isBlank()) ? null : address.trim();
         }
 
         // 去重并拒绝 null；保留管理员传入的顺序
@@ -108,6 +138,10 @@ public class AttendanceTaskService {
         task.setCheckType(checkType);
         task.setStartAt(startAt);
         task.setEndAt(endAt);
+        task.setLatitude(latitude);
+        task.setLongitude(longitude);
+        task.setRadiusM(radiusM);
+        task.setAddress(address);
         task.setCreatedBy(operatorId);
         task.setCreatedAt(now);
         attendanceTaskMapper.insert(task);
@@ -167,6 +201,10 @@ public class AttendanceTaskService {
         vo.setStartAt(task.getStartAt());
         vo.setEndAt(task.getEndAt());
         vo.setState(this.stateOf(task.getStartAt(), task.getEndAt(), LocalDateTime.now()));
+        vo.setLatitude(task.getLatitude());
+        vo.setLongitude(task.getLongitude());
+        vo.setRadiusM(task.getRadiusM());
+        vo.setAddress(task.getAddress());
 
         // 名单状态在 Java 里组装，不把 CASE WHEN 压给数据库
         List<AttendanceTaskParticipantVO> participants =

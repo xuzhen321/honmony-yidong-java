@@ -70,4 +70,19 @@ public interface VoiceprintProfileMapper extends BaseMapper<VoiceprintProfile> {
             """)
     List<VoiceprintProfile> selectOtherUsersEffectiveByTag(@Param("userId") Long userId,
                                                            @Param("phraseTag") String phraseTag);
+
+    /**
+     * 当前用户全部生效的数字模板，打卡时一次取出，避免每题都查库。
+     *
+     * <p>只取 DIGIT_x，FIXED 整句模板本期不用。</p>
+     */
+    @Select("""
+            SELECT *
+            FROM voiceprint_profile
+            WHERE user_id = #{userId}
+              AND deleted = 0
+              AND phrase_tag LIKE 'DIGIT\\_%'
+            ORDER BY phrase_tag, id
+            """)
+    List<VoiceprintProfile> selectEffectiveByUser(@Param("userId") Long userId);
 }

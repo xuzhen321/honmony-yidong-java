@@ -49,6 +49,11 @@ app:
     challenge-max-attempts: 3
     challenge-rate-limit-per-minute: 5
     duplicate-threshold: 0.70
+    # 打卡音频时长限制（秒）
+    checkin-min-seconds: 3
+    checkin-max-seconds: 6
+    # 有打卡点的任务，客户端上报的定位精度不能超过这个值（米）
+    max-location-accuracy-meters: 100
     thresholds:
       avg: 0.78
       min: 0.65

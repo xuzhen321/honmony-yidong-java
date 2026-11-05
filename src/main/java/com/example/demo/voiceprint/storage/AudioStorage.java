@@ -14,6 +14,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -40,8 +41,25 @@ public class AudioStorage {
      * <p>先写同目录临时文件再原子移动，避免半截文件被当成有效音频。</p>
      */
     public String storeEnroll(long userId, String phraseTag, byte[] wavBytes) {
-        String relative = "enroll/" + userId + "/" + phraseTag + "/"
-                + UUID.randomUUID().toString().replace("-", "") + ".wav.enc";
+        String relative = "enroll/" + userId + "/" + phraseTag + "/" + randomFileName();
+        return store(relative, wavBytes);
+    }
+
+    /**
+     * 保存打卡音频，目录为 {@code checkin/yyyy/MM/dd/{taskId}/{userId}/}。
+     *
+     * <p>打卡音频属于证据数据，保留 7 天，数据库里 {@code retain_until} 记录清理日期。</p>
+     */
+    public String storeCheckin(long taskId, long userId, byte[] wavBytes) {
+        LocalDate today = LocalDate.now();
+        String relative = String.format("checkin/%04d/%02d/%02d/%d/%d/%s",
+                today.getYear(), today.getMonthValue(), today.getDayOfMonth(),
+                taskId, userId, randomFileName());
+        return store(relative, wavBytes);
+    }
+
+    /** 加密并原子落盘，返回相对路径。 */
+    private String store(String relative, byte[] wavBytes) {
         Path target = resolveSafely(relative);
         Path temp = target.resolveSibling(target.getFileName() + ".tmp");
         try {
@@ -56,9 +74,13 @@ public class AudioStorage {
         } catch (IOException e) {
             deleteQuietly(temp);
             deleteQuietly(target);
-            log.error("保存注册音频失败: {}", relative, e);
+            log.error("保存音频失败: {}", relative, e);
             throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "录音保存失败，请稍后重试");
         }
+    }
+
+    private static String randomFileName() {
+        return UUID.randomUUID().toString().replace("-", "") + ".wav.enc";
     }
 
     /** 删除单个相对路径对应的文件；文件不存在也视为成功（幂等）。 */

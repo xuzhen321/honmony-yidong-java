@@ -40,6 +40,22 @@ public class AttendanceTask {
     @TableField("end_at")
     private LocalDateTime endAt;
 
+    /** 打卡点纬度（WGS84）；与 longitude 同时为 null 表示不限位置 */
+    @TableField("latitude")
+    private Double latitude;
+
+    /** 打卡点经度（WGS84） */
+    @TableField("longitude")
+    private Double longitude;
+
+    /** 允许打卡半径（米） */
+    @TableField("radius_m")
+    private Integer radiusM;
+
+    /** 地点名称，仅展示 */
+    @TableField("address")
+    private String address;
+
     /** 逻辑外键 -> user.id，创建人必须是 ADMIN */
     @TableField("created_by")
     private Long createdBy;

@@ -26,4 +26,13 @@ public class AttendanceTaskParticipantVO {
 
     @Schema(description = "打卡记录 ID", example = "88301")
     private Long recordId;
+
+    @Schema(description = "VOICE 声纹打卡 / MANUAL 管理员补卡；未打卡为 null")
+    private String source;
+
+    @Schema(description = "补卡管理员 ID；声纹打卡或未打卡为 null")
+    private Long operatorId;
+
+    @Schema(description = "补卡备注；声纹打卡或未打卡为 null")
+    private String remark;
 }

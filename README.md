@@ -1,7 +1,7 @@
 # 移动应用开发 · 后端 demo
 
 Spring Boot 4.1.2 + Java 17 + Lombok + MyBatis-Plus 3.5.18 + MySQL 8。
-已实现 **登录、退出登录、修改密码、修改昵称、用户管理（含管理员创建账号）、考勤任务（管理员发起）、Token 鉴权、统一响应、全局异常处理**。
+已实现 **登录、退出登录、修改密码、修改昵称、用户管理（含管理员创建账号）、考勤任务（管理员发起）、声纹注册/状态/重置、声纹 + 位置打卡、管理员补卡/撤销、Token 鉴权、统一响应、全局异常处理**。
 
 完整的接口说明见：[`docs/用户登录接口文档.md`](docs/用户登录接口文档.md)
 
@@ -9,8 +9,10 @@ Spring Boot 4.1.2 + Java 17 + Lombok + MyBatis-Plus 3.5.18 + MySQL 8。
 
 - 登录模块：[`docs/前后端联调文档-登录模块.md`](docs/前后端联调文档-登录模块.md)
 - 考勤任务模块：[`docs/前后端联调文档-考勤任务模块.md`](docs/前后端联调文档-考勤任务模块.md)
+- 声纹模块：[`docs/前后端联调文档-声纹模块.md`](docs/前后端联调文档-声纹模块.md)
+- **声纹 + 位置打卡 / 管理员补卡：[`docs/前后端联调文档-打卡模块.md`](docs/前后端联调文档-打卡模块.md)**
 
-声纹认证（M1 基础设施 + M2 音频算法 + M3 声纹注册/状态 + M4 考勤任务 + 管理员重置已完成；声纹打卡尚未实现）请看：[`docs/声纹认证-后端设计文档.md`](docs/声纹认证-后端设计文档.md)
+后端设计与算法说明：[`docs/声纹认证-后端设计文档.md`](docs/声纹认证-后端设计文档.md)、[`算法解释.md`](算法解释.md)
 
 ---
 
@@ -67,6 +69,14 @@ mysql -uroot -p harmony_test < src/main/resources/db/migration_user_add_role_del
 ```bash
 mysql -uroot -p harmony_test < src/main/resources/db/voiceprint.sql
 ```
+
+**已经建过上面 8 张表的库**（例如之前联调过声纹注册），还需要执行一次位置/补卡字段迁移：
+
+```bash
+mysql -uroot -p harmony_test < src/main/resources/db/migration_checkin_location_manual.sql
+```
+
+这个脚本只执行一次，重复执行会提示字段已存在。
 
 测试账号完全由 `init.sql` 负责，应用启动时不会自动插入数据。
 

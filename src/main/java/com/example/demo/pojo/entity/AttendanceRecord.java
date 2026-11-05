@@ -59,6 +59,38 @@ public class AttendanceRecord {
     @TableField("audio_sha256")
     private String audioSha256;
 
+    /** 打卡时纬度（WGS84），不限位置的任务为 null */
+    @TableField("check_latitude")
+    private Double checkLatitude;
+
+    /** 打卡时经度（WGS84） */
+    @TableField("check_longitude")
+    private Double checkLongitude;
+
+    /** 与打卡点的直线距离（米） */
+    @TableField("distance_m")
+    private Double distanceM;
+
+    /** 客户端上报的定位精度（米） */
+    @TableField("accuracy_m")
+    private Double accuracyM;
+
+    /** 是否模拟位置 */
+    @TableField("is_mock")
+    private Boolean isMock;
+
+    /** VOICE 声纹打卡 / MANUAL 管理员补卡 */
+    @TableField("source")
+    private String source;
+
+    /** 补卡/修改的管理员 ID */
+    @TableField("operator_id")
+    private Long operatorId;
+
+    /** 补卡备注 */
+    @TableField("remark")
+    private String remark;
+
     /** 逻辑删除：0 正常，1 已删除 */
     @TableLogic
     @TableField("deleted")

@@ -69,7 +69,7 @@ public final class VadSplitter {
             return List.of();
         }
 
-        double threshold = noiseFloor * 3.0;
+        double threshold = noiseFloor * 3.0;  // ok,三倍信噪比
         if (threshold <= 0) {
             threshold = Math.max(1.0, maxEnergy * 0.01);
         }

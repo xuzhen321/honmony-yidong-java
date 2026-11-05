@@ -41,4 +41,19 @@ public class CreateAttendanceTaskRequest {
     @NotEmpty(message = "userIds 不能为空")
     @Size(max = 500, message = "一次最多指定 500 人")
     private List<Long> userIds;
+
+    @Schema(description = "打卡点纬度 WGS84；可选，与 longitude 必须同时给",
+            example = "31.230416")
+    private Double latitude;
+
+    @Schema(description = "打卡点经度 WGS84；可选，与 latitude 必须同时给",
+            example = "121.473701")
+    private Double longitude;
+
+    @Schema(description = "允许打卡半径（米），默认 200，范围 50~1000", example = "200")
+    private Integer radiusM;
+
+    @Schema(description = "地点名称，最长 128，仅展示", example = "上海市浦东新区xx路1号")
+    @Size(max = 128, message = "地点名称不能超过 128 个字符")
+    private String address;
 }

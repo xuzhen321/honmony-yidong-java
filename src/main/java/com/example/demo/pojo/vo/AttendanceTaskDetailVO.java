@@ -28,6 +28,18 @@ public class AttendanceTaskDetailVO {
     @Schema(description = "UPCOMING 未开始 / OPEN 进行中 / CLOSED 已结束", example = "OPEN")
     private String state;
 
+    @Schema(description = "打卡点纬度 WGS84；null 表示不限位置")
+    private Double latitude;
+
+    @Schema(description = "打卡点经度 WGS84；null 表示不限位置")
+    private Double longitude;
+
+    @Schema(description = "允许打卡半径（米）")
+    private Integer radiusM;
+
+    @Schema(description = "地点名称")
+    private String address;
+
     @Schema(description = "任务名单")
     private List<AttendanceTaskParticipantVO> participants;
 }

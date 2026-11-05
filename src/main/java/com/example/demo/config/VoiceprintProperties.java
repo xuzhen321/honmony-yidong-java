@@ -28,10 +28,19 @@ public class VoiceprintProperties {
     private int challengeMaxAttempts = 3;
 
     /** 同一用户每分钟最多申请挑战码次数 */
-    private int challengeRateLimitPerMinute = 5;
+    private int challengeRateLimitPerMinute = 2;
 
     /** 注册时 1:N 查重阈值，最高分必须低于它 */
     private double duplicateThreshold = 0.70;
+
+    /** 打卡音频最短时长（秒） */
+    private double checkinMinSeconds = 3.0;
+
+    /** 打卡音频最长时长（秒） */
+    private double checkinMaxSeconds = 6.0;
+
+    /** 有打卡点的任务允许的最大定位精度（米），超过说明定位太差 */
+    private double maxLocationAccuracyMeters = 100.0;
 
     /** 打卡判定阈值 */
     private Thresholds thresholds = new Thresholds();
